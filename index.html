@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>typing game with react</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="text/babel">
+    (() => {
+      class App extends React.Component {
+        constructor() {
+          super();
+          this.state = {
+            word: 'click to start!',
+            words: [
+              'apple',
+              'english',
+              'book',
+              'vocabulary',
+              'guitar',
+            ],
+            loc:   0,
+            score: 0,
+            miss:  0,
+            timer: '0.00',
+            timeLimit: 3 * 1000, // 3秒
+            isActive: false,
+            startTime: null
+          };
+          this.activateGame = this.activateGame.bind(this);
+          this.constructWord = this.constructWord.bind(this);
+          this.initializeGame = this.initializeGame.bind(this);
+          this.enterKey = this.enterKey.bind(this);
+          this.finishGame = this.finishGame.bind(this);
+          this.reconstructWord = this.reconstructWord.bind(this);
+          this.showResult = this.showResult.bind(this);
+          this.startTimer = this.startTimer.bind(this);
+        }
+
+        componentDidMount() {
+          window.addEventListener('click', this.initializeGame);
+          window.addEventListener('keyup', this.enterKey);
+        }
+
+        componentWillUnmount() {
+          window.removeEventListener('click', this.initializeGame);
+          window.removeEventListener('keyup', this.enterKey);
+        }
+
+        activateGame() {
+          this.setState({
+            loc: 0,
+            score: 0,
+            miss: 0,
+            word: this.constructWord(),
+            isActive: true,
+          })
+        }
+
+        finishGame() {
+          this.setState({
+            word: 'click to restart!',
+            timer: '0.00',
+            isActive: false
+          })
+        }
+
+        initializeGame() {
+          if (this.state.isActive === true) { return; }
+          this.activateGame();
+          this.startTimer();
+        }
+
+        enterKey(e) {
+          if (this.state.isActive === false) { return; }
+
+          if (e.key === this.state.word[this.state.loc]) {
+            this.setState(prevState => {
+              const loc   = prevState.loc + 1;
+              const word  = this.reconstructWord(loc);
+              const score = prevState.score + 1;
+
+              return { word: word, score: score, loc: loc };
+            });
+
+            if (this.state.loc === this.state.word.length) {
+              this.setState(prevState => {
+                const loc = 0;
+                const word = this.constructWord();
+
+                return { word: word, loc: loc };
+              });
+            };
+          } else {
+            this.setState(prevState => {
+              const miss = prevState.miss + 1;
+
+              return { miss: miss };
+            })
+          }
+        }
+
+        constructWord() {
+          return this.state.words[Math.floor(Math.random() * this.state.words.length)];
+        }
+
+        reconstructWord(loc) {
+          let placeholder = '';
+          for (let i = 0; i < loc; i++) {
+            placeholder += '_';
+          };
+
+          return placeholder + this.state.word.substring(loc);
+        }
+
+        runTimer() {
+          this.setState(prevState => {
+            const timeLeft = ((prevState.timeLimit + prevState.startTime - Date.now()) / 1000).toFixed(2);
+
+            return { timer: timeLeft };
+          });
+
+          const timerId = setTimeout(() => {
+            this.runTimer();
+          }, 10);
+
+          if (this.state.timer < 0) {
+            this.finishGame();
+            clearTimeout(timerId);
+            setTimeout(() => {
+              this.showResult();
+            }, 100);
+          }
+        }
+
+        showResult() {
+          const score = this.state.score;
+          const miss = this.state.miss;
+          const accuracy = score + miss === 0 ? 0 : score / (score + miss) * 100;
+
+          alert(`Score: ${score}, Miss: ${miss}, Accuracy: ${accuracy.toFixed(2)}%`);
+        }
+
+        startTimer() {
+          this.setState({ startTime: Date.now() });
+          this.runTimer();
+        }
+
+        render() {
+          return (
+            <div className="container">
+              <p className="target">{this.state.word}</p>
+              <p className="info">
+                Score: {this.state.score},
+                Miss: {this.state.miss},
+                Time left: {this.state.timer}
+              </p>
+            </div>
+          )
+        }
+      }
+      ReactDOM.render(
+        <App/>,
+        document.getElementById('app')
+      );
+    })();
+  </script>
+</body>
+</html>
